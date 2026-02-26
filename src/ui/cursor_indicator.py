@@ -39,9 +39,11 @@ class CursorIndicator(QWidget):
             
         # Follow cursor
         cursor_pos = QCursor.pos()
-        # Offset to slightly below right of cursor to avoid blocking text selection
-        # Typical cursor is ~20x20
-        self.move(cursor_pos.x() + 15, cursor_pos.y() + 15)
+        # Follow cursor center (negative offset to center on cursor tip)
+        # Center of widget (30,30) aligns with cursor (0,0) -> offset (-30,-30)
+        # But we want it slightly offset to not cover the exact click point
+        # Try aligning top-left of widget to top-left of cursor with slight negative offset
+        self.move(cursor_pos.x() - 10, cursor_pos.y() - 10)
         
         # Smooth level interpolation
         # Easing: move 20% towards target per frame
