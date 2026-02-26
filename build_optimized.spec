@@ -7,9 +7,9 @@ block_cipher = None
 excludes = [
     'tkinter',
     'unittest',
-    'email',
-    'http',
-    'xml',
+    # 'email', # Often used for parsing headers
+    # 'http',  # Required for networking (DashScope)
+    # 'xml',   # Safer to keep
     'pydoc',
     'pdb',
     # 'distutils', # Required by PyInstaller hooks
@@ -78,7 +78,8 @@ exclude_patterns = [
     'Qt6Quick', 'Qt6Qml', 'Qt6Pdf', 'Qt6VirtualKeyboard', 'Qt6DBus', 
     'Qt63D', 'Qt6Charts', 'Qt6DataVisualization', 'Qt6Multimedia', 
     'Qt6Positioning', 'Qt6Sensors', 'Qt6SerialPort', 'Qt6Web',
-    'scipy', 'libscipy', 'opengl32sw.dll'
+    # 'scipy', 'libscipy', # NumPy might need OpenBLAS which might be named similarly or shared
+    'opengl32sw.dll'
 ]
 
 def is_excluded(name):

@@ -35,8 +35,8 @@ class CursorIndicator(QWidget):
         # Timer for position and smooth animation
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_state)
-        # 60 FPS
-        self.timer.start(16)
+        # 30 FPS (approx 33ms) to reduce CPU usage
+        self.timer.start(33)
         
         self.hide()
         
