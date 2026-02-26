@@ -120,7 +120,7 @@ class AppController(QObject):
             audio_data = self.recorder.get_audio_data()
             if not audio_data or len(audio_data) < 1000: # Ignore very short clicks
                 logger.warning("Audio too short or empty, ignoring.")
-                self.tray.showMessage("OpenType", "Recording too short.", QSystemTrayIcon.Warning, 2000)
+                # Silenced: self.tray.showMessage("OpenType", "Recording too short.", QSystemTrayIcon.Warning, 2000)
                 return
 
             # Normalize
@@ -154,7 +154,7 @@ class AppController(QObject):
                     self.error_occurred.emit(f"STT Error: {error}")
                 else:
                     logger.warning("STT returned empty text.")
-                    self.tray.showMessage("OpenType", "No speech detected.", QSystemTrayIcon.Warning, 2000)
+                    # Silenced: self.tray.showMessage("OpenType", "No speech detected.", QSystemTrayIcon.Warning, 2000)
                 
         except Exception as e:
             logger.error(f"Processing error: {e}")
@@ -179,7 +179,9 @@ class AppController(QObject):
         self.app.quit()
 
     def on_processing_finished(self, text):
-        self.tray.showMessage("OpenType", f"Input: {text}", QSystemTrayIcon.Information, 2000)
+        # Silenced success notification to avoid interruption
+        # self.tray.showMessage("OpenType", f"Input: {text}", QSystemTrayIcon.Information, 2000)
+        pass
 
     def show_error(self, message):
         self.tray.showMessage("OpenType Error", message, QSystemTrayIcon.Warning, 3000)
