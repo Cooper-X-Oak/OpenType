@@ -13,7 +13,7 @@ pnpm-debug.log*
 config.json
 __pycache__
 build
-*.spec
+# *.spec # Allow spec files for build configuration
 .venv
 venv
 .trae/
