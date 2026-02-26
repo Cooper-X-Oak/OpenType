@@ -17,3 +17,5 @@ build
 .venv
 venv
 openspec/
+.trae/
+scripts/
