@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import Qt, QTimer, QRectF
-from PySide6.QtGui import QPainter, QColor, QBrush, QCursor
+from PySide6.QtGui import QPainter, QColor, QBrush, QCursor, QPen
 from src.utils.logger import logger
 
 class CursorIndicator(QWidget):
@@ -17,9 +17,11 @@ class CursorIndicator(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         
-        # Geometry
-        self.base_size = 60
-        self.resize(self.base_size, self.base_size)
+        # Geometry for "Terminal Block" style
+        # Tall and narrow
+        self.base_width = 12
+        self.base_height = 30 
+        self.resize(self.base_width + 10, self.base_height + 10) # Add padding for glow
         
         # State
         self.level = 0.0
@@ -39,18 +41,25 @@ class CursorIndicator(QWidget):
             
         # Follow cursor
         cursor_pos = QCursor.pos()
-        # Follow cursor center (negative offset to center on cursor tip)
-        # Center of widget (30,30) aligns with cursor (0,0) -> offset (-30,-30)
-        # But we want it slightly offset to not cover the exact click point
-        # Try aligning top-left of widget to top-left of cursor with slight negative offset
-        self.move(cursor_pos.x() - 10, cursor_pos.y() - 10)
+        
+        # New Position Logic for "Terminal Block"
+        # Ideally, sit to the right of the cursor, like a text caret.
+        # Cursor tip is usually top-left.
+        # Let's position it slightly to the right and centered vertically relative to a line of text.
+        # Assuming cursor is at bottom-left of a character (standard text cursor),
+        # but mouse cursor tip is top-left.
+        # Let's try placing it:
+        # X: cursor.x + 15 (right of pointer)
+        # Y: cursor.y - 10 (centered on pointer tip vertically)
+        
+        # User requested: "Don't take up space".
+        # Maybe keep it close: x + 8, y - 10
+        self.move(cursor_pos.x() + 8, cursor_pos.y() - 10)
         
         # Smooth level interpolation
         # Easing: move 20% towards target per frame
         self.level += (self.target_level - self.level) * 0.2
         
-        # Always update if visible to keep position in sync, 
-        # but repaint logic is handled by paintEvent
         self.update()
             
     def set_level(self, level):
@@ -62,34 +71,47 @@ class CursorIndicator(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         
-        center = self.rect().center()
+        # Center of the widget rect
+        rect = self.rect()
+        center_x = rect.width() / 2
+        bottom_y = rect.height() - 5 # 5px padding from bottom
         
-        # Dynamic Radius based on level
-        # Min radius 8, Max radius 25
-        base_radius = 8
-        dynamic_radius = base_radius + (self.level * 15)
+        # Style: Terminal Block
+        # Base state: A thin underscore (height ~3px)
+        # Active state: Grows upwards to full block (height ~20px)
         
-        # 1. Outer Glow (The "Wave")
-        # Alpha decreases as size increases
-        alpha = int(100 + (self.level * 100)) # 100-200
-        color = QColor(0, 120, 215, alpha)
+        min_h = 3
+        max_h = 24
+        current_h = min_h + (self.level * (max_h - min_h))
         
-        # If very loud, turn slightly orange/red
-        if self.level > 0.7:
-            # Interpolate towards red
-            ratio = (self.level - 0.7) / 0.3
+        # Width fixed
+        w = 8
+        
+        # Draw "Glow" / Shadow first (for visibility on white)
+        # A slightly larger, semi-transparent black rect behind
+        glow_rect = QRectF(center_x - w/2 - 1, bottom_y - current_h - 1, w + 2, current_h + 2)
+        painter.setBrush(QBrush(QColor(0, 0, 0, 50))) # Faint shadow
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(glow_rect, 1, 1)
+        
+        # Draw Main Block
+        # Color: Terminal Green
+        # Dynamic alpha: slightly transparent at low volume, solid at high
+        alpha = int(180 + (self.level * 75)) # 180-255
+        color = QColor(0, 255, 0, alpha)
+        
+        # If very loud, turn slightly yellow/amber (warning)
+        if self.level > 0.8:
+            # Interpolate towards amber
+            ratio = (self.level - 0.8) / 0.2
             color = QColor(
                 int(0 + 255 * ratio), 
-                int(120 - 120 * ratio), 
-                int(215 - 100 * ratio), 
+                255, 
+                0, 
                 alpha
             )
-            
+
+        block_rect = QRectF(center_x - w/2, bottom_y - current_h, w, current_h)
         painter.setBrush(QBrush(color))
         painter.setPen(Qt.NoPen)
-        painter.drawEllipse(center, dynamic_radius, dynamic_radius)
-        
-        # 2. Inner Core (Solid Dot)
-        # Always visible so user knows it's there even when silent
-        painter.setBrush(QBrush(QColor(255, 255, 255, 220)))
-        painter.drawEllipse(center, 4, 4)
+        painter.drawRoundedRect(block_rect, 1, 1) # Slight rounded corners
