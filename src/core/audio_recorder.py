@@ -1,10 +1,15 @@
 import pyaudio
 import wave
 import threading
+import numpy as np
+from PySide6.QtCore import QObject, Signal
 from src.utils.logger import logger
 
-class AudioRecorder:
+class AudioRecorder(QObject):
+    audio_level_changed = Signal(float)
+
     def __init__(self, sample_rate=16000, channels=1, bits_per_sample=16, device_index=None):
+        super().__init__()
         self.sample_rate = sample_rate
         self.channels = channels
         self.bits_per_sample = bits_per_sample
@@ -42,6 +47,21 @@ class AudioRecorder:
 
     def _callback(self, in_data, frame_count, time_info, status):
         if self.recording:
+            # Calculate audio level
+            try:
+                if self.bits_per_sample == 16:
+                    audio_array = np.frombuffer(in_data, dtype=np.int16)
+                    # Calculate RMS
+                    rms = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
+                    # Normalize (adjust divisor based on sensitivity needs)
+                    # 3000 is a reasonable baseline for speech detection threshold, 
+                    # 15000 is loud speech.
+                    level = min(1.0, rms / 10000.0)
+                    self.audio_level_changed.emit(level)
+            except Exception as e:
+                # Don't log every frame to avoid spam, but good to know
+                pass
+
             with self.lock:
                 self.audio_data.extend(in_data)
             return (in_data, pyaudio.paContinue)

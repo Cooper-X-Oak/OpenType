@@ -8,6 +8,7 @@ from src.core.hotkey_manager import HotkeyManager
 from src.core.text_injector import TextInjector
 from src.ui.system_tray import SystemTray
 from src.ui.settings_window import SettingsWindow
+from src.ui.cursor_indicator import CursorIndicator
 from src.utils.logger import logger
 import threading
 
@@ -27,6 +28,7 @@ class AppController(QObject):
         # UI
         self.tray = SystemTray()
         self.settings_window = SettingsWindow()
+        self.cursor_indicator = CursorIndicator()
         
         # Core
         self.recorder = None
@@ -53,7 +55,9 @@ class AppController(QObject):
         
         # App Signals (for UI updates)
         self.recording_started.connect(self.tray.set_recording_icon)
+        self.recording_started.connect(self.cursor_indicator.show)
         self.recording_stopped.connect(self.tray.set_idle_icon)
+        self.recording_stopped.connect(self.cursor_indicator.hide)
         self.processing_finished.connect(self.on_processing_finished)
         self.error_occurred.connect(self.show_error) # Notification
 
@@ -66,6 +70,8 @@ class AppController(QObject):
         
         device_index = self.config.get("audio_device_index")
         self.recorder = AudioRecorder(device_index=device_index)
+        # Connect audio level signal
+        self.recorder.audio_level_changed.connect(self.cursor_indicator.set_level)
         logger.info(f"AudioRecorder reloaded with device index: {device_index}")
 
     def update_hotkey(self):
