@@ -1,0 +1,28 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+context: |
+  # OpenType Roadmap
+  Please refer to openspec/ROADMAP.md for the future development plan and vision.
+  The core goals are:
+  1. UX Polish (Cursor Indicator, Sound Feedback, Streaming Output)
+  2. Power Features (Smart Formatting, Voice Commands, Clipboard Optimization)
+  3. Engineering (Auto-Updater, Crash Reporting, Installer)
+  
+  # Tech Stack
+  - Python 3.12+
+  - PySide6 (Qt for Python)
+  - DashScope (Aliyun) for STT
+  - Windows API (via ctypes/pywin32) for low-level interactions
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

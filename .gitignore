@@ -16,6 +16,5 @@ build
 *.spec
 .venv
 venv
-openspec/
 .trae/
 scripts/
