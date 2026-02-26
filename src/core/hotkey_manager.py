@@ -9,6 +9,7 @@ class HotkeyManager:
         self.press_callback = None
         self.release_callback = None
         self.lock = threading.Lock()
+        self.hooks = []
 
     def register_hotkey(self, hotkey, on_press, on_release):
         """
@@ -32,8 +33,10 @@ class HotkeyManager:
             # Note: on_press_key/on_release_key adds a hook that is called for every event of that key.
             # We need to filter repeats.
             
-            keyboard.on_press_key(hotkey, self._on_press_wrapper)
-            keyboard.on_release_key(hotkey, self._on_release_wrapper)
+            press_hook = keyboard.on_press_key(hotkey, self._on_press_wrapper)
+            release_hook = keyboard.on_release_key(hotkey, self._on_release_wrapper)
+            self.hooks.append(press_hook)
+            self.hooks.append(release_hook)
             
             logger.info(f"Registered hotkey: {hotkey}")
             
@@ -43,27 +46,9 @@ class HotkeyManager:
     def unregister_hotkey(self):
         if self.current_hotkey:
             try:
-                # keyboard.unhook_key(self.current_hotkey) # This removes all hooks for the key?
-                # Actually keyboard.remove_hotkey doesn't work for on_press_key hooks returned?
-                # on_press_key returns a hook function/object.
-                # But keyboard.unhook_all_hotkeys() removes hotkeys.
-                # keyboard.unhook(self._on_press_wrapper) might work if we kept reference.
-                # But keyboard library is a bit global state heavy.
-                
-                # Best way to unregister specific hooks is hard in 'keyboard' lib without keeping the hook object.
-                # But since we only have one hotkey active, we can just unhook all?
-                # Or we can keep track of the hook handles.
-                
-                # For simplicity, let's just clear all for now if we assume single hotkey app.
-                # But better to store the hooks.
-                pass 
-                # keyboard.unhook_all() # This is too aggressive.
-                
-                # Let's rely on overwriting callbacks or just leave it for now (prototype).
-                # To be proper, we should use keyboard.hook and filter ourselves?
-                
-                # Re-implementation with hook:
-                pass
+                for hook in self.hooks:
+                    keyboard.unhook(hook)
+                self.hooks.clear()
             except Exception as e:
                 logger.error(f"Failed to unregister hotkey: {e}")
             

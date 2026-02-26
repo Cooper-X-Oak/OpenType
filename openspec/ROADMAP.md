@@ -21,6 +21,33 @@
   - 经过评估，当前非流式方案兼容性更好，且流式直接上屏会干扰编辑器。
   - 未来可能考虑“悬浮窗预览”方案。
 
+## Phase 1.5: 产品化与极客体验 (Productization & Geek Experience) 🛠️
+**核心目标**: 完善软件生命周期管理，提供极客风格的配置与交互体验。
+
+- [ ] **安装与卸载 (Installer & Uninstaller)**
+  - 使用 Inno Setup 制作标准 Windows 安装包。
+  - 支持一键安装、创建快捷方式、注册表清理。
+  - **风格**: 保持安装过程简洁快。
+
+- [ ] **极客风格引导与配置 (Geek Style Onboarding & Config)**
+  - **交互界面**: 摒弃传统 GUI 设置窗口，采用类似 TUI (Text User Interface) 或 "Command Palette" 的设计。
+  - **功能**:
+    - 首次启动引导 (Setup Wizard)。
+    - 多 API 管理 (DashScope, OpenAI, Local Whisper)。
+    - 个性化配置 (热键、音效开关、光标样式)。
+  - **历史记录**: 本地存储并管理历史输入记录 (Local History Manager)，支持检索和回溯。
+
+## 性能与效率优化 (Efficiency & Performance) ⚡
+**核心目标**: 打造极致轻量、快速响应的工具。
+
+- [ ] **安装包瘦身 (Package Slimming)**
+  - **现状**: 目前 60MB+ (包含全量 PySide6/DashScope)。
+  - **目标**: 压缩至 30MB 以内。
+  - **手段**:
+    - 排除 PySide6 不用的模块 (QtWebEngine, Qt3D, QtQml)。
+    - 使用 UPX 压缩 DLL。
+    - 清理虚拟环境冗余依赖。
+
 ## Phase 2: 功能增强 (Power Features) 🚀
 **核心目标**: 从简单的听写工具进化为生产力神器。
 

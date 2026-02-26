@@ -17,15 +17,20 @@ class CursorIndicator(QWidget):
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_ShowWithoutActivating)
         
-        # Geometry for "Terminal Block" style
-        # Tall and narrow
-        self.base_width = 12
-        self.base_height = 30 
-        self.resize(self.base_width + 10, self.base_height + 10) # Add padding for glow
+        # Geometry for "Capsule & EKG" style
+        # Fixed size vertical capsule
+        self.capsule_width = 14
+        self.capsule_height = 32
+        self.resize(self.capsule_width + 4, self.capsule_height + 4) # Small padding
         
         # State
         self.level = 0.0
         self.target_level = 0.0
+        
+        # Import random for EKG noise
+        import random
+        self.random = random
+
         
         # Timer for position and smooth animation
         self.timer = QTimer(self)
@@ -54,7 +59,10 @@ class CursorIndicator(QWidget):
         
         # User requested: "Don't take up space".
         # Maybe keep it close: x + 8, y - 10
-        self.move(cursor_pos.x() + 8, cursor_pos.y() - 10)
+        # For new capsule (14x32), center it vertically on the cursor tip?
+        # Or slightly below?
+        # Let's keep it to the right, centered vertically on the text line.
+        self.move(cursor_pos.x() + 10, cursor_pos.y() - 10)
         
         # Smooth level interpolation
         # Easing: move 20% towards target per frame
@@ -74,44 +82,71 @@ class CursorIndicator(QWidget):
         # Center of the widget rect
         rect = self.rect()
         center_x = rect.width() / 2
-        bottom_y = rect.height() - 5 # 5px padding from bottom
+        center_y = rect.height() / 2
         
-        # Style: Terminal Block
-        # Base state: A thin underscore (height ~3px)
-        # Active state: Grows upwards to full block (height ~20px)
+        # --- 1. Draw Container (Capsule) ---
+        # Fixed size centered
+        w = self.capsule_width
+        h = self.capsule_height
         
-        min_h = 3
-        max_h = 24
-        current_h = min_h + (self.level * (max_h - min_h))
+        # Black background, 90% opacity
+        bg_color = QColor(0, 0, 0, 230)
+        # White thin border
+        border_color = QColor(255, 255, 255, 200)
         
-        # Width fixed
-        w = 8
+        capsule_rect = QRectF(center_x - w/2, center_y - h/2, w, h)
         
-        # Draw "Glow" / Shadow first (for visibility on white)
-        # A slightly larger, semi-transparent black rect behind
-        glow_rect = QRectF(center_x - w/2 - 1, bottom_y - current_h - 1, w + 2, current_h + 2)
-        painter.setBrush(QBrush(QColor(0, 0, 0, 50))) # Faint shadow
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(glow_rect, 1, 1)
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(QPen(border_color, 1))
+        # Fully rounded corners (capsule shape)
+        painter.drawRoundedRect(capsule_rect, w/2, w/2)
         
-        # Draw Main Block
-        # Color: Terminal Green
-        # Dynamic alpha: slightly transparent at low volume, solid at high
-        alpha = int(180 + (self.level * 75)) # 180-255
-        color = QColor(0, 255, 0, alpha)
+        # --- 2. Draw Voice Waveform (EKG/Oscilloscope) ---
+        # Cyberpunk Neon Green
+        wave_color = QColor(0, 255, 65) # Neon Green
+        painter.setPen(QPen(wave_color, 1.5))
+        painter.setBrush(Qt.NoBrush)
         
-        # If very loud, turn slightly yellow/amber (warning)
-        if self.level > 0.8:
-            # Interpolate towards amber
-            ratio = (self.level - 0.8) / 0.2
-            color = QColor(
-                int(0 + 255 * ratio), 
-                255, 
-                0, 
-                alpha
-            )
-
-        block_rect = QRectF(center_x - w/2, bottom_y - current_h, w, current_h)
-        painter.setBrush(QBrush(color))
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(block_rect, 1, 1) # Slight rounded corners
+        # Wave parameters
+        # Height of the wave area (keep some padding inside capsule)
+        wave_h = h - 8 
+        wave_top = center_y - wave_h/2
+        
+        # Generate points
+        # 6 segments (7 points)
+        points = []
+        num_points = 7
+        segment_h = wave_h / (num_points - 1)
+        
+        # Max amplitude (horizontal swing)
+        # Max swing is +/- (w/2 - 2px padding)
+        # Increase amplitude range to allow going slightly outside the capsule for visual impact?
+        # Let's keep it mostly inside but maximize usage.
+        max_amp = (w/2) + 2 # Allow slight overflow for intense effect
+        
+        for i in range(num_points):
+            y = wave_top + (i * segment_h)
+            
+            # Anchor top and bottom points to center
+            if i == 0 or i == num_points - 1:
+                x = center_x
+            else:
+                # Random noise + amplitude based on level
+                # Base jitter even at silence (alive feel)
+                jitter = self.random.uniform(-0.5, 0.5)
+                
+                # Boost signal intensity
+                # Use non-linear response (power) to make loud sounds more dramatic
+                boosted_level = pow(self.level, 0.7) 
+                
+                # Signal swing
+                signal = self.random.uniform(-1.0, 1.0) * boosted_level * max_amp
+                
+                x = center_x + jitter + signal
+                
+            points.append( (x, y) )
+            
+        # Draw Polyline
+        from PySide6.QtCore import QPointF
+        qpoints = [QPointF(x, y) for x, y in points]
+        painter.drawPolyline(qpoints)

@@ -9,6 +9,7 @@ from src.core.text_injector import TextInjector
 from src.ui.system_tray import SystemTray
 from src.ui.settings_window import SettingsWindow
 from src.ui.cursor_indicator import CursorIndicator
+from src.ui.onboarding_window import GeekOnboardingWindow
 from src.utils.logger import logger
 from src.utils.sound_player import play_start_sound, play_stop_sound, play_error_sound
 import threading
@@ -25,12 +26,74 @@ class AppController(QObject):
         
         # Initialize components
         self.config = config_manager
+        self.onboarding = None
         
         # UI
         self.tray = SystemTray()
         self.settings_window = SettingsWindow()
         self.cursor_indicator = CursorIndicator()
         
+        # Connect UI Signals early
+        self.tray.settings_requested.connect(self.open_settings)
+        self.tray.geek_mode_requested.connect(self.start_onboarding)
+        self.tray.exit_requested.connect(self.quit_app)
+        self.settings_window.settings_saved.connect(self.on_settings_saved)
+        
+        # Check for first run or missing/invalid key
+        # Condition:
+        # 1. No API key configured
+        # 2. Key is clearly invalid (e.g. "your_key_here" or empty)
+        # 3. Explicit "force_onboarding" flag in config
+        
+        api_key = self.config.get("api_key")
+        is_key_invalid = not api_key or api_key.strip() == "" or "your_key" in api_key.lower()
+        
+        if is_key_invalid or self.config.get("force_onboarding"):
+             logger.info("Starting Onboarding: Missing or invalid API key, or forced.")
+             self.start_onboarding()
+        else:
+             logger.info("Starting Silently: Valid configuration found.")
+             self.init_core_features()
+
+    def start_onboarding(self):
+        logger.info("Starting onboarding requested")
+        if self.onboarding:
+            logger.info("Onboarding window exists, showing and activating")
+            if self.onboarding.isMinimized():
+                self.onboarding.showNormal()
+            self.onboarding.show()
+            self.onboarding.raise_()
+            self.onboarding.activateWindow()
+            return
+
+        current_config = {
+            "api_key": self.config.get("api_key", ""),
+            "hotkey": self.config.get("hotkey", "alt+space"),
+            "sound_enabled": self.config.get("sound_enabled", True)
+        }
+        self.onboarding = GeekOnboardingWindow(initial_config=current_config)
+        self.onboarding.finished.connect(self.on_onboarding_finished)
+        # Handle manual close to allow reopening
+        self.onboarding.destroyed.connect(self._reset_onboarding_ref)
+        self.onboarding.show()
+
+    def _reset_onboarding_ref(self):
+        logger.info("Onboarding window destroyed, resetting reference")
+        self.onboarding = None
+
+    def on_onboarding_finished(self, config_data):
+        logger.info("Onboarding finished, saving config and initializing core")
+        # Save config
+        for key, value in config_data.items():
+            self.config.set(key, value)
+        
+        # Initialize core
+        self.init_core_features()
+        if self.onboarding:
+            self.onboarding.close()
+            self.onboarding = None
+
+    def init_core_features(self):
         # Core
         self.recorder = None
         self.reload_recorder()
@@ -42,18 +105,13 @@ class AppController(QObject):
         self.is_processing = False
         self.processing_lock = threading.Lock()
         
-        # Connect Signals
-        self.connect_signals()
+        # Connect Core Signals
+        self.connect_core_signals()
         
         # Register Hotkey
         self.update_hotkey()
         
-    def connect_signals(self):
-        # UI Signals
-        self.tray.settings_requested.connect(self.open_settings)
-        self.tray.exit_requested.connect(self.quit_app)
-        self.settings_window.settings_saved.connect(self.on_settings_saved)
-        
+    def connect_core_signals(self):
         # App Signals (for UI updates)
         self.recording_started.connect(self.tray.set_recording_icon)
         self.recording_started.connect(self.cursor_indicator.show)
@@ -102,6 +160,11 @@ class AppController(QObject):
     def stop_and_process(self):
         # Called from HotkeyManager thread
         try:
+            # Idempotency check: if not recording, don't stop/process again
+            if not self.recorder or not self.recorder.recording:
+                logger.warning("Stop requested but not recording. Ignoring.")
+                return
+
             self.recorder.stop()
             self.recording_stopped.emit()
             play_stop_sound()

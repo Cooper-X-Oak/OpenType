@@ -6,6 +6,7 @@ from src.core.version import __version__
 
 class SystemTray(QSystemTrayIcon):
     settings_requested = Signal()
+    geek_mode_requested = Signal()
     exit_requested = Signal()
 
     def __init__(self, parent=None):
@@ -21,7 +22,11 @@ class SystemTray(QSystemTrayIcon):
         
         self.menu = QMenu(parent)
         
-        self.settings_action = QAction("Settings", self)
+        self.geek_action = QAction("Open Geek Console", self)
+        self.geek_action.triggered.connect(self.geek_mode_requested.emit)
+        self.menu.addAction(self.geek_action)
+        
+        self.settings_action = QAction("Classic Settings", self)
         self.settings_action.triggered.connect(self.settings_requested.emit)
         self.menu.addAction(self.settings_action)
         
@@ -45,7 +50,8 @@ class SystemTray(QSystemTrayIcon):
         if reason == QSystemTrayIcon.Trigger: # Single click
             pass 
         elif reason == QSystemTrayIcon.DoubleClick:
-            self.settings_requested.emit()
+            logger.info("Tray Double Clicked")
+            self.geek_mode_requested.emit()
 
     def set_idle_icon(self):
         # Create a simple icon programmatically if no file
