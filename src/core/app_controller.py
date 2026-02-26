@@ -10,6 +10,7 @@ from src.ui.system_tray import SystemTray
 from src.ui.settings_window import SettingsWindow
 from src.ui.cursor_indicator import CursorIndicator
 from src.utils.logger import logger
+from src.utils.sound_player import play_start_sound, play_stop_sound, play_error_sound
 import threading
 
 class AppController(QObject):
@@ -93,6 +94,7 @@ class AppController(QObject):
         try:
             self.recorder.start()
             self.recording_started.emit()
+            play_start_sound()
         except Exception as e:
             logger.error(f"Failed to start recording: {e}")
             self.error_occurred.emit(str(e))
@@ -102,6 +104,7 @@ class AppController(QObject):
         try:
             self.recorder.stop()
             self.recording_stopped.emit()
+            play_stop_sound()
             
             # Start processing in background (it is already in a thread from HotkeyManager)
             # But HotkeyManager spawns a thread for callback.
@@ -184,4 +187,5 @@ class AppController(QObject):
         pass
 
     def show_error(self, message):
+        play_error_sound()
         self.tray.showMessage("OpenType Error", message, QSystemTrayIcon.Warning, 3000)
