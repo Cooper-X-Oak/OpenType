@@ -1,0 +1,9 @@
+PySide6
+keyboard
+requests
+dashscope
+pyperclip
+pyinstaller
+pypiwin32
+pyaudio
+numpy
