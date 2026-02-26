@@ -16,3 +16,4 @@ build
 *.spec
 .venv
 venv
+openspec/
