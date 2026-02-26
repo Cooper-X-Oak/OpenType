@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon, QAction, QPixmap, QPainter, QColor
 from PySide6.QtCore import Signal, Qt
 from src.utils.logger import logger
+from src.core.version import __version__
 
 class SystemTray(QSystemTrayIcon):
     settings_requested = Signal()
@@ -9,7 +10,7 @@ class SystemTray(QSystemTrayIcon):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setToolTip("OpenType - Typeless Input")
+        self.setToolTip(f"OpenType v{__version__} - Typeless Input")
         
         # Load icon (placeholder)
         # We can use standard icons from QStyle if available, 
