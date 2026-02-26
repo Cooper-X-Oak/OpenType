@@ -7,9 +7,9 @@ from src.utils.logger import logger
 class STTEngine:
     def __init__(self, api_key=None):
         self.api_key = api_key
-        # Use paraformer-v1 (offline/file mode) for faster one-shot recognition
-        # paraformer-realtime-v1 is better for streaming but might be slower for file upload due to connection overhead
-        self.model = 'paraformer-v1' 
+        # Use paraformer-realtime-v2 for better accuracy and speed (newer generation)
+        # Reverted from paraformer-v1 which caused ModelNotFound error in Recognition class
+        self.model = 'paraformer-realtime-v2' 
         
     def set_api_key(self, api_key):
         self.api_key = api_key

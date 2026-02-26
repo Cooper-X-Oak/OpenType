@@ -36,18 +36,25 @@ class TextInjector:
             ki = KEYBDINPUT(vk, 0, flags, 0, 0)
             return INPUT(INPUT_KEYBOARD, ki, (ctypes.c_ubyte * 8)())
 
-        inputs = [
-            create_input(VK_CONTROL, 0), # Ctrl Down
-            create_input(VK_V, 0),       # V Down
-            create_input(VK_V, KEYEVENTF_KEYUP), # V Up
-            create_input(VK_CONTROL, KEYEVENTF_KEYUP) # Ctrl Up
-        ]
+        # Split inputs to ensure target app registers the key combination
+        # 1. Ctrl Down
+        input_ctrl_down = create_input(VK_CONTROL, 0)
+        ctypes.windll.user32.SendInput(1, ctypes.byref(input_ctrl_down), cbSize)
+        time.sleep(0.05)
         
-        nInputs = len(inputs)
-        lpInputs = (INPUT * nInputs)(*inputs)
-        cbSize = ctypes.sizeof(INPUT)
+        # 2. V Down
+        input_v_down = create_input(VK_V, 0)
+        ctypes.windll.user32.SendInput(1, ctypes.byref(input_v_down), cbSize)
+        time.sleep(0.05)
         
-        ctypes.windll.user32.SendInput(nInputs, lpInputs, cbSize)
+        # 3. V Up
+        input_v_up = create_input(VK_V, KEYEVENTF_KEYUP)
+        ctypes.windll.user32.SendInput(1, ctypes.byref(input_v_up), cbSize)
+        time.sleep(0.05)
+        
+        # 4. Ctrl Up
+        input_ctrl_up = create_input(VK_CONTROL, KEYEVENTF_KEYUP)
+        ctypes.windll.user32.SendInput(1, ctypes.byref(input_ctrl_up), cbSize)
 
     def inject_text(self, text):
         """
@@ -64,7 +71,7 @@ class TextInjector:
                 logger.info(f"Copied to clipboard: {text[:20]}...")
                 
                 # 2. Simulate Ctrl+V
-                time.sleep(0.1) # Wait for clipboard update
+                time.sleep(0.3) # Increased wait time for clipboard to stabilize
                 
                 # Try ctypes method first (more reliable on Windows)
                 try:
